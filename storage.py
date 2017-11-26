@@ -33,8 +33,9 @@ def sets_list(base_dir):
 
 def set_load(items, ip=None, db=None, load_all=False):
     if load_all:
-        for item in items:
-            ip.user_ns[item] = db[item]
+        items = list(db.keys())
+    for item in items:
+        ip.user_ns[item] = db[item]
 
 
 def set_store(items, ip=None, db=None):
