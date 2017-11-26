@@ -1,3 +1,18 @@
+"""Store and retrieve objects in IPython.
+
+This module provides the public magics available to list, store and load
+objects in IPython.
+
+The main magics and their respective functions are the following
+(magic [options]: description -> function):
+
+%listsets : list all folders with in the db folder -> list_sets
+%setopen [set_name] [items_to_load] -> open_set
+%setload [items_to_load] [from_set] -> load_items
+%setload [-a] : load all items from the current set -> set_load
+%setstore [items_to_store][to_set] -> add_items
+"""
+
 import os
 
 from IPython import get_ipython
@@ -7,20 +22,6 @@ from dillpickleshare import PickleShareDB
 
 
 ip = get_ipython()
-
-"""
-%listsets -> list_sets (list all folders with in the db folder)
-%setopen [set_name] [items_to_load] -> open_set
-%setload [items_to_load][from_set] -> load_items
-%setload [-a] -> load all items from the current set
-%setstore [items_to_store][to_set] -> add_items
-"""
-
-"""
-Alternatives:
-It works with %load, but not with %run.
-It does not work with import either.
-"""
 
 
 def sets_list(base_dir):
