@@ -12,7 +12,7 @@ It may or may not work with jupyter and other kernels, testing is still due.
 It works with the pre-packaged (c)python3 ```pickle```, but I highly reccomend installing ```dill```, as it offers a much wider object type support (including functions). IPy-storage will use ```dill``` as the default serialization protocol if it is installed.
 
 ### Instructions
-Just %load the storage.py file. It is recommended to include the file in the ipython initialization to avoid doing this for every new interpreter instance. 
+Just ```%load``` the storage.py file. It is recommended to include the file in the ipython initialization to avoid doing this for every new interpreter instance. I know that this is somewhat annoying and I'm researching for better ways to install ipython magics.
 
 ## Usage
 
