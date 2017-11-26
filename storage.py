@@ -31,12 +31,10 @@ def sets_list(base_dir):
     return set_list
 
 
-def set_load(items, ip=None, db=None, all=False):
-    if all:
-        items = list(db.keys())
-
-    for item in items:
-        ip.user_ns[item] = db[item]
+def set_load(items, ip=None, db=None, load_all=False):
+    if load_all:
+        for item in items:
+            ip.user_ns[item] = db[item]
 
 
 def set_store(items, ip=None, db=None):
@@ -45,11 +43,11 @@ def set_store(items, ip=None, db=None):
         try:
             db[item] = obj
         except KeyError:
-            print("Item ", item, " is not available in the set")
+            print("Item {} is not available in the set.".format(item))
 
 
 def set_objects(db=None):
-    pass
+    raise NotImplementedError()
 
 
 @magics_class
@@ -68,12 +66,12 @@ class SetStoreMagics(Magics):
         %setopen myset mydata
         %setopen myset
         """
-        base = self.base_dir
-        args = args.split(' ')
+        base = self.base_dir  # base is never used.
+        args = args.split()
         if len(args) == 1:
             set_name = args[0]
         else:
-            base = args[1]
+            base = args[1]  # base is never used.
 
         dir_path = os.sep.join([self.base_dir, set_name])
         if not os.path.isdir(dir_path):
@@ -89,10 +87,10 @@ class SetStoreMagics(Magics):
         eg. %listsets mydb
         %listsets
         """
-        if base == "":
+        if not base:
             base = self.base_dir
 
-        print("Listing sets at", base)
+        print("Listing sets at {}".format(base))
 
         for set_dir in sets_list(base):
             print(set_dir)
@@ -114,12 +112,12 @@ class SetStoreMagics(Magics):
 
         if args == "-a":
             items = None
-            all = True
+            load_all = True
         else:
             items = args.split(",")
-            all = False
+            load_all = False
 
-        set_load(items, ip=self.ip, db=self.db, all=all)
+        set_load(items, ip=self.ip, db=self.db, load_all=load_all)
         print("Values loaded sucessfully")
 
     @line_magic
@@ -139,7 +137,7 @@ class SetStoreMagics(Magics):
 
     @line_magic
     def setobjs(self, args):
-        if args != '':
+        if args:
             db = PickleShareDB(args)
         elif self.db is not None:
             db = self.db
@@ -150,7 +148,7 @@ class SetStoreMagics(Magics):
             return None
 
         objs = sorted(list(db.keys()))
-        print("Objects in ", db.root, ":")
+        print("Objects in {}:".format(db.root))
         for obj in objs:
             print(obj)
 
