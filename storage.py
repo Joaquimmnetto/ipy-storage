@@ -39,7 +39,8 @@ class StorageSet():
 
     def load(self, items):        
         for item in items:
-            self.ip.user_ns[item] = self.db[item]
+            self.ip.user_ns[item] = self.db[item]            
+        
 
     def delete(self, items):
         for item in items:
