@@ -1,0 +1,57 @@
+import os 
+import sys
+import shutil
+import inspect
+
+from test_utils import build_suite, run_tests
+
+
+
+def setup():
+    !mkdir temp_base
+    %sets -b temp_base
+
+def test_open_default_base():
+    %sets -o test
+    assert 'test' in os.listdir('temp_base')
+
+
+def test_open_custom_base():    
+    %sets -o test test_base
+    assert 'test' in os.listdir('test_base')
+
+
+def test_delete_default_base():
+    %sets -o test
+    %sets -d test
+    assert 'test' not in os.listdir('temp_base')
+
+
+def test_delete_custom_base():
+    %sets -o test test_base
+    %sets -d test test_base
+    assert 'test' not in os.listdir('test_base')
+
+
+def test_change_base():
+    %sets -b test_base
+    %sets -o test
+    assert 'test' in os.listdir('test_base')
+    
+
+def cleanup_test():
+    %sets -d test
+    %sets -b temp_base
+    if 'test_base' in os.listdir('.'):
+        shutil.rmtree('test_base')
+
+
+def cleanup():
+    if 'temp_base' in os.listdir('.'):
+        shutil.rmtree('temp_base')
+
+
+if __name__ == '__main__':
+    print("--------Tests for the %sets magic------------")
+    %load_ext ipystore.storage_magic    
+    run_tests(build_suite(inspect.getmembers(sys.modules[__name__])))
