@@ -28,10 +28,12 @@ import os
 from IPython import get_ipython
 from IPython.core.magic import Magics, magics_class, line_magic
 
-from dillpickleshare import PickleShareDB
-from argparse import ArgumentParser
+from ipystore.storage import StorageSet, list_sets
 
-from storage import StorageSet, list_sets
+silent = True #TODO: Yeah, this is awful and should be a config. option or smth.
+def log(x): 
+    if not silent:
+        print(x)
 
 def _unpack_args(args, count, *defaults):
     results = []
@@ -51,95 +53,114 @@ class SetStoreMagics(Magics):
         self.ip = shell
         self.def_base = "./ipy_db"
         self.current_set = None
-        self.db = None
         
     @line_magic
     def sets(self, args):
         """ Manages the %sets magic, that can open, delete and list sets.            
         """
-        args = ' '.join([for s in args.split(' ') if len(s) > 0])
-        comm = args.pop(0)
+        args = [arg for arg in args.split(' ') if len(arg) > 0]
+        if len(args) > 0:
+            comm = args.pop(0)
+        else:
+            comm = ""
 
         if comm == '-o':            
             set_name, base_dir = _unpack_args(args, 2, None, self.def_base)
-            self.current_set = StorageSet(set_name, base_dir)
+            self.current_set = StorageSet(self.ip, set_name, base_dir)
+            log("Set {} opened".format(set_name))
 
         elif comm == '-d':
             set_name, base_dir = _unpack_args(args, 2, None, self.def_base)
             to_delete = self.current_set            
             if set_name is None and self.current_set is None:
-                print("Open or name a set in order to destroy it.")
+                log("Open or name a set in order to destroy it.")
                 return                
             elif set_name is not None:                
                 to_delete = StorageSet(self.ip, set_name, base_dir)
             to_delete.remove_set()
+            log("Set {} removed".format(set_name))            
 
         elif comm == '-b':
-            base_dir = _unpack_args(args, 1)
+            base_dir, = _unpack_args(args, 1)
             if base_dir is None:
-                print("Current base dir is: {}".format(self.def_base))
+                log("Current base dir is: {}".format(self.def_base))
             else:
-                self.def_base = base_dir            
-        
+                self.def_base = base_dir
+                log("New base dir is {}.".format(self.def_base))
         else:
-            base_dir = _unpack_args(args, 1, self.def_base)
-            print("Sets at {}:".format(self.def_base))
-            for set_name,set_size in list_sets(base_dir):
-                print("{},{}".format(set_name,set_size))
+            base_dir = comm if comm!="" else self.def_base
+            try:
+                log("Sets at {}:".format(base_dir))
+                for set_name,set_size in list_sets(base_dir):
+                    log("{},{}".format(set_name,set_size))
+            except KeyError:
+                log("Directory {} does not exists".format(base_dir))
 
-     @line_magic
+    @line_magic
     def setstore(self, args):
         """Manages the %setstore magic, responsible to save, load, delete and list objects in the current set.        
         """
-        if self.db is None:
-            print("Open a set first, available sets:")
-            print(self.listsets())
+        if self.current_set is None:
+            log("Open a set first, available sets at {}:".format(self.def_base))
+            log(list_sets(self.def_base))
             return
 
-        args = ' '.join([for s in args.split(' ') if len(s) > 0]
-        comm = args.pop(0)
+        args = [arg for arg in args.split(' ') if len(arg) > 0]                        
+        if len(args) > 0:
+            comm = args.pop(0)
+        else:
+            comm = ""
+        args = ''.join(args).split(' ')        
 
         if comm == "-s" or comm == "-sa":            
             if comm == "-s":
-                if len(args == 0):
-                    print("Please list the objects that you desire to be stored"
-                    print("e.g. %setstore foo,bar")
+                if len(args) == 0:
+                    log("Please list the objects that you desire to be stored")
+                    log("e.g. %setstore foo,bar")
                     return
-                items = args.strip().split(",")
+                items = args.pop(0).strip().split(",")
             else:
-                items = [n for n,s self.current_set.list_contents()]
+                items = [n for n,s in self.current_set.list_contents()]
 
             self.current_set.store(items)
-            print("Stored {} items".format(len(items)))
+            log("Stored {} items".format(len(items)))
         
-        if comm == "-l" or comm == "-la":
+        elif comm == "-l" or comm == "-la":
             if comm == "-l":
-                if len(args == 0):
-                    print("Please list the objects that you desire to be loaded"
-                    print("e.g. %setstore foo,bar")
+                if len(args) == 0:
+                    log("Please list the objects that you desire to be loaded")
+                    log("e.g. %setstore foo,bar")
                     return
-                items = args.strip().split(",")
-            else:
-                items = [n for n,s self.current_set.list_contents()]
-            self.current_set.load(items)
-            print("Loaded {} items".format(len(items)))
+                items = args.pop(0).strip().split(",")
+            else:                
+                items = [n for n,s in self.current_set.list_contents()]
+            try:
+                self.current_set.load(items)
+                log("Loaded {} items".format(len(items)))
+            except KeyError:
+                log("Item not present in the current set")
 
-        if comm == "-d":
-             if len(args == 0):
-                print("Please list the objects that you desire to be loaded"
-                print("e.g. %setstore foo,bar")
+            
+
+        elif comm == "-d":
+            if len(args) == 0:
+                log("Please list the objects that you desire to be loaded")
+                log("e.g. %setstore foo,bar")
                 return
-            items = args.strip().split(",")
-            self.current_set.delete(items)
-            print("Deleted {} items".format(len(items)))
-        
+            items = args.pop(0).strip().split(",")
+            try:
+                self.current_set.delete(items)
+                log("Deleted {} items".format(len(items)))
+            except FileNotFoundError:
+                log("Item not present in the current set")
+
         else:
-            print("Objects currently in the {} set".format(self.current_set.name))
+            log("Objects currently in the {} set".format(self.current_set.name))
             total_size = 0
             for obj,size in self.current_set.list_contents():
-                print("{} \t {} bytes".format(obj,size))
+                log("{} \t {} bytes".format(obj,size))
                 total_size += size
-            print("Total size: {} bytes".format(total_size))
+            log("Total size: {} bytes".format(total_size))
         
     
 ip = get_ipython()

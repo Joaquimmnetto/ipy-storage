@@ -1,0 +1,124 @@
+
+"""%setstore:
+Operations within a set. save, load or delete values and list the set current contents.
+    %setstore - List the objects currently stored in the set
+    %setstore -s [items_to_save] - save items in the current set (multiple items must be comma-separated)
+    %setstore -sa - save all items in the namespace with a corresponding name in the current set
+    %setstore -l [items_to_load] - load items from the current set (multiple items must be comma-separated)
+    %setstore -la  - load all items from the current set
+    %setstore -d [items_to_delete] - delete items in the current set (multiple items must be comma-separated)    
+"""
+import inspect
+import sys
+from pprint import pprint
+from test_utils import build_suite, run_tests, ipy_instantiate, ipy_from_userns
+
+def mock_func(): return 1
+def mock_func2(x): return x*x
+
+def setup():
+    %sets -b test_base
+    %sets -o test
+
+
+def test_store_persist_single():
+    save_obj = ''
+    ipy_instantiate(save_obj, remote_locals=locals())
+
+    %setstore -s save_obj
+    del(save_obj)    
+    %setstore -l save_obj
+    save_obj, = ipy_from_userns('save_obj')
+    
+    assert save_obj == ''
+
+
+def test_store_persist_mutiple():
+    save_obj, save_func, save_lambda = ('', mock_func, lambda x:x)
+    ipy_instantiate(save_obj, save_func, save_lambda, remote_locals=locals())
+
+    %setstore -s save_obj, save_func, save_lambda    
+    del(save_obj)
+    del(save_func)
+    del(save_lambda)    
+    %setstore -l save_obj, save_func, save_lambda
+    save_obj, save_func, save_lambda = ipy_from_userns('save_obj', 'save_func', 'save_lambda')
+
+    assert save_obj == '' and save_func() == 1 and save_lambda(2) == 2
+
+
+def test_store_persist_all():
+    save_obj, save_func, save_lambda = ('', mock_func, lambda x: x+x)
+    ipy_instantiate(save_obj, save_func, save_lambda, remote_locals=locals())
+
+    %setstore -s save_obj, save_func, save_lambda
+    
+    save_obj, save_func, save_lambda = ('not empty', mock_func2, lambda x: x+1)
+    ipy_instantiate(save_obj, save_func, save_lambda, remote_locals=locals())
+    
+    %setstore -sa
+    del(save_obj)
+    del(save_func)
+    del(save_lambda)    
+    %setstore -la    
+    save_obj, save_func, save_lambda = ipy_from_userns('save_obj', 'save_func', 'save_lambda')
+
+    assert save_obj == 'not empty' and save_func(2) == mock_func2(2) and save_lambda(5) == 6
+
+
+def test_store_delete_single():
+    save_obj = ''
+    ipy_instantiate(save_obj, remote_locals=locals())
+
+    %setstore -s save_obj
+    del(save_obj)
+    %setstore -d save_obj
+    %setstore -l save_obj
+    try:
+        save_obj.capitalize()
+        assert False
+    except NameError:
+        assert True
+
+
+def test_store_delete_mutiple():
+    save_obj, save_func, save_lambda = ('', mock_func, lambda x:x)    
+    ipy_instantiate(save_obj, save_func, save_lambda, remote_locals=locals())
+
+    %setstore -s save_obj, save_func, save_lambda
+    del(save_obj)
+    del(save_func)
+    del(save_lambda)
+    %setstore -d save_obj, save_func, save_lambda
+    %setstore -l save_obj, save_func, save_lambda
+
+    try:
+        save_obj.capitalize()                
+        assert False
+    except NameError:
+        assert True
+    try:
+        save_func()
+        assert False
+    except NameError:
+        assert True
+    try:
+        save_lambda(1)
+        assert False
+    except NameError:
+        assert True
+
+
+def cleanup():
+    %sets -d test
+    !rmdir test_base
+
+
+def cleanup_test():
+    %sets -d test
+    %sets -o test
+
+if __name__ == '__main__':
+    print("--------Tests for the %setstore magic------------")
+    %load_ext ipystore.storage_magic    
+    run_tests(build_suite(inspect.getmembers(sys.modules[__name__])))

@@ -3,19 +3,10 @@
 This module provides the public magics available to list, store and load
 objects in IPython.
 
-The main magics and their respective functions are the following
-(magic [options]: description -> function):
-
-%listsets : list all folders with in the db folder -> list_sets
-%setopen [set_name] [items_to_load] -> open_set
-%setload [items_to_load] [from_set] -> load_items
-%setload [-a] : load all items from the current set -> set_load
-%setstore [items_to_store][to_set] -> add_items
 """
 
 import os
-from IPython import get_ipython
-from dillpickleshare import PickleShareDB
+from ipystore.dillpickleshare import PickleShareDB
 
 
 class StorageSet():
@@ -39,8 +30,7 @@ class StorageSet():
 
     def load(self, items):        
         for item in items:
-            self.ip.user_ns[item] = self.db[item]            
-        
+            self.ip.user_ns[item] = self.db[item]
 
     def delete(self, items):
         for item in items:
@@ -52,7 +42,11 @@ class StorageSet():
 
 
 def list_sets(base_dir):    
-    #TODO: verificar o tamanho dos sets listados
-    return [(o,0) for o in os.listdir(base_dir)
+    try:
+        #TODO: verificar o tamanho dos sets listados    
+        result = [(o,0) for o in os.listdir(base_dir)
                 if os.path.isdir(os.path.join(base_dir, o))]
+    except FileNotFoundError as ex:
+        raise FileNotFoundError(ex)
     
+    return result
