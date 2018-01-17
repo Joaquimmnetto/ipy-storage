@@ -162,6 +162,6 @@ class SetStoreMagics(Magics):
                 total_size += size
             log("Total size: {} bytes".format(total_size))
         
-    
-ip = get_ipython()
-ip.register_magics(SetStoreMagics(ip, None))
+def load_ipython_extension(ip, **kwargs):
+    ip = get_ipython()
+    ip.register_magics(SetStoreMagics(ip, None))
