@@ -30,7 +30,7 @@ from IPython.core.magic import Magics, magics_class, line_magic
 
 from ipystore.storage import StorageSet, list_sets
 
-silent = True #TODO: Yeah, this is awful and should be a config. option or smth.
+silent = False #TODO: Yeah, this is awful and should be a config. option or smth.
 def log(x): 
     if not silent:
         print(x)
@@ -86,6 +86,9 @@ class SetStoreMagics(Magics):
                 log("Current base dir is: {}".format(self.def_base))
             else:
                 self.def_base = base_dir
+                if not os.path.isdir(self.def_base):
+                    os.mkdir(self.def_base)
+                    
                 log("New base dir is {}.".format(self.def_base))
         else:
             base_dir = comm if comm!="" else self.def_base
@@ -95,6 +98,10 @@ class SetStoreMagics(Magics):
                     log("{},{}".format(set_name,set_size))
             except KeyError:
                 log("Directory {} does not exists".format(base_dir))
+            except FileNotFoundError:
+                log("Default base directory not found, creating ipy_db as default base directory")
+                os.mkdir(self.def_base)
+
 
     @line_magic
     def setstore(self, args):
